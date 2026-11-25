@@ -37,69 +37,6 @@ BudgetBee shows how many days that delays your goal and what it does to your dai
 
 **5. Private by design.** No bank login and no cloud. The AI runs on your machine.
 
-## Accounts, saved records and phone use
-
-- **Sign up / log in / log out.** Passwords are stored as BCrypt hashes. A login is a random token kept on the device
-  (only its SHA-256 hash is stored on the server). **Logging out ends that login immediately.**
-  Five wrong passwords lock that email for 10 minutes.
-- **Every user has separate data.** Every record has an owner, and every query is filtered by the logged-in user.
-- **Records are kept.** Data is saved in a database file (`backend/data/`), so it is still there when you start the app
-  again. Nothing is deleted unless you delete it. Every delete asks first. **Account > Delete my account** removes
-  everything for good (it needs your password).
-- **Works on a phone.** The layout adapts: bottom tab bar, large tap targets, full-screen chat, notch-safe spacing.
-  Open it in your phone's browser and use "Add to Home screen" to get an app icon (it is a Progressive Web App).
-
-## Run it (easiest: one window)
-
-You need Java 21, Maven 3.9+ and Node 18+ installed. Then:
-
-- **Windows:** double-click `start-app.bat`
-- **Mac / Linux:** run `./start-app.sh`
-
-It builds the web page, starts the server, and BudgetBee opens at **http://localhost:8080**.
-The first run downloads libraries and takes a few minutes. Create an account, then press **Load sample data** on the
-dashboard to see a full month.
-
-Doing it by hand instead:
-```bash
-cd frontend && npm install && npm run build      # puts the web page inside the backend
-cd ../backend && mvn spring-boot:run             # open http://localhost:8080
-```
-
-### Use it on your phone
-
-1. Phone and computer on the **same Wi-Fi**. Start BudgetBee on the computer.
-2. Find the computer's IP address (Windows: `ipconfig`, look for "IPv4 Address"; Mac: System Settings > Wi-Fi > Details).
-3. On the phone's browser open `http://<that-ip>:8080`, for example `http://192.168.1.20:8080`.
-4. If Windows asks about the firewall for Java, allow **Private networks**.
-5. Optional: browser menu > **Add to Home screen**.
-
-This works only while the computer is on and on the same network. For use anywhere, deploy the app to a server and
-put it behind HTTPS (see Roadmap). Do not expose it to the internet over plain HTTP.
-
-### Developing the screen (hot reload)
-```bash
-cd backend && mvn spring-boot:run          # terminal 1
-cd frontend && npm install && npm run dev  # terminal 2, open http://localhost:5173
-# npm run dev:phone  also lets a phone on your Wi-Fi open http://<ip>:5173
-```
-
-### Data and backups
-- Default: a file database at `backend/data/budgetbee.mv.db`. **Back up by copying the `data` folder** (stop the app first).
-- MySQL instead: `docker compose up -d`, then `mvn spring-boot:run "-Dspring-boot.run.profiles=mysql"`.
-  If you used an earlier version of this project with MySQL, drop the `budgetbee` database once, because tables now belong to users.
-
-### Turn on the AI model (optional, free)
-```bash
-ollama pull llama3.2
-AI_ENABLED=true mvn spring-boot:run     # Windows cmd: set AI_ENABLED=true  then  mvn spring-boot:run
-```
-Without it, built-in rules and templates are used. Each chat reply shows which engine answered.
-
-### Run the tests
-```bash
-cd backend && mvn test
-```
 
 ## Try these in the chat
 
@@ -127,15 +64,6 @@ React (Vite, PWA) ──► REST API (Spring Boot + Spring Security) ──► H
                          ├─ RuleParser / ChatService   chat understanding with or without AI
                          └─ Budget / Income / Expense services   all scoped to the logged-in user
 ```
-
-## Design decisions
-
-- **Plain code does the maths, AI does the words.** Money numbers must be exact. A guard rejects invented numbers.
-- **Graceful degradation.** Every AI feature has a rules-based fallback.
-- **The calculator is pure Java**, so it is fast to test.
-- **Server-side tokens, not stateless JWT.** Logout must really end a session, so tokens are stored (hashed) and deleted on logout.
-- **One owner id on every row, and `CurrentUser.id()` in every service.** Deleting by id also checks the owner.
-- **One server for everything.** `npm run build` puts the web page inside the backend, so a single program serves the app.
 
 ## Tests (26)
 
@@ -174,16 +102,3 @@ backend/src/test/   unit tests
 frontend/           React app (src/App.jsx, api.js, styles.css) and PWA files (public/)
 docker-compose.yml  optional MySQL
 ```
-
-## Troubleshooting
-
-- **Page says the web page has not been built:** run `npm run build` in `frontend` (or use `start-app.bat`), then restart.
-- **Cannot reach the server:** the backend window was closed or is still starting. Wait for "Started BudgetBeeApplication".
-- **Phone cannot open the address:** same Wi-Fi? Use the computer's IP, not `localhost`. Allow Java in the firewall.
-- **Forgot password:** there is no reset yet (see Roadmap). On your own computer you can delete the `backend/data` folder to start fresh.
-- **Port 8080 busy:** close the other program, or start with `--server.port=8081`.
-
-## Roadmap
-
-Password reset and change password, HTTPS deployment (Dockerfile and a hosted demo), bank statement import (CSV),
-merchant rules, recurring bills, weekly AI summary, CI pipeline.
